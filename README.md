@@ -1,11 +1,11 @@
-# Universal RCS – Recoil Control System
+# Universal RCS – Classic Win32 Edition
 
-> **Advanced, low‑latency recoil compensation for PC shooters**  
-> *Fully animated ImGui interface · Global input hooks · Game‑specific profiles*
+> **Lightweight, low‑level recoil control with native Windows UI**  
+> *Trackbar‑based compensation · Global hotkeys · Hold‑to‑activate modes*
 
-![Status](https://img.shields.io/badge/version-1.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Windows](https://img.shields.io/badge/platform-Windows-0078d7)
+![Version](https://img.shields.io/badge/version-1.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Platform](https://img.shields.io/badge/platform-Windows-0078d7) ![UI](https://img.shields.io/badge/UI-Win32%20Native-008080)
 
-**Universal RCS** is a standalone Windows application that automatically counteracts weapon recoil in first‑person shooter games. It works by injecting synthetic mouse movements based on user‑defined or preset recoil patterns – without reading or writing game memory. The result is a universal, non‑invasive tool that can be used with any FPS title.
+**Universal RCS (Classic)** is a minimal, dependency‑free recoil compensation tool for PC shooters. It uses the native Windows API (no external libraries) and low‑level keyboard/mouse hooks to simulate counter‑recoil movements. The classic trackbar interface provides precise, real‑time control with zero overhead.
 
 ---
 
@@ -13,14 +13,13 @@
 
 | Category | Details |
 |----------|---------|
-| **Recoil control** | Independent sliders for **Left / Right / Up / Down** compensation (0–100). Sensitivity, smoothing, and start‑up delay. |
-| **Activation modes** | Toggle key (customisable), hold M1, or hold M1+M2. |
-| **Burst fire** | 3‑round or 5‑round burst – automatically disables after the set number of shots. |
-| **Advanced options** | Randomisation (±10%) to avoid pattern detection. Adaptive time‑based scaling (gradually increases over 2 seconds). |
-| **Game profiles** | One‑click presets for **Rainbow Six**, **CS2**, **Valorant**, **Apex Legends**. Fully customisable for any other game. |
-| **Modern GUI** | Smooth animations, glowing accents, dark glass theme. Built with **Dear ImGui** and rendered via **DirectX 11**. |
-| **Configuration** | Save/load settings to `recoil.cfg`. Persistent across sessions. |
-| **Global operation** | Works in any foreground window – no game injection or memory patching. |
+| **Recoil compensation** | Four independent sliders for **Left**, **Right**, **Up**, **Down** (0–100). Sensitivity multiplier (1.0–10.0). |
+| **Activation modes** | **Toggle key** (customizable), **Hold Mouse 1**, or **Hold Mouse 1+2**. |
+| **Global hotkey** | Set any key as the toggle – works while the app is in the background. |
+| **Real‑time adjustment** | Move sliders while the game is running – changes apply immediately. |
+| **Configuration** | Save/load profiles via standard file dialogs (`.ini` format). “New Config” resets to defaults. |
+| **Sub‑pixel precision** | Accumulates fractional movements to maintain accuracy over time. |
+| **Native Win32 UI** | No external runtimes – just a small, fast executable. |
 
 ---
 
@@ -28,41 +27,44 @@
 
 ```
 ┌─────────────────────────────────────────────────┐
-│                  RECOIL MASTER                  │
-│             Advanced Recoil Control             │
+│ Recoil Control                            [−][□][×]│
 ├─────────────────────────────────────────────────┤
-│  ● ACTIVE                             TOGGLE    │
-├─────────────────────────────────────────────────┤
-│  Game Profile:  [Custom ▼]                      │
-│  ─────────────────────────────────────────────  │
-│  Recoil Compensation                            │
-│  Left      [━━━━━━━━━━━━━━━━━━━━] 0             │
-│  Right     [━━━━━━━━━━━━━━━━━━━━] 0             │
-│  Up        [━━━━━━━━━━━━━━━━━━━━] 0             │
-│  Down      [━━━━━━━━━━━━━━━━━━━━] 0             │
-│  ─────────────────────────────────────────────  │
-│  Sensitivity  [━━━━━━━━━━━━━━━━━━━━] 10.0       │
-│  Smoothing    [━━━━━━━━━━━━━━━━━━━━] 50%        │
-│  Delay        [━━━━━━━━━━━━━━━━━━━━] 0ms        │
-│  ─────────────────────────────────────────────  │
-│  Randomize (±10%)      [ OFF  ]                 │
-│  Adaptive Time‑Based    [ OFF  ]                 │
-│  Burst Fire            [Disabled ▼]             │
-│  Activation            [Toggle Key ▼]           │
-├─────────────────────────────────────────────────┤
-│  [ Save Config ]  [ Load Config ]  [ Set Key ]  │
+│ Left:      [━━━━━━━━━━━━━━━━━━━━] 0              │
+│ Right:     [━━━━━━━━━━━━━━━━━━━━] 0              │
+│ Up:        [━━━━━━━━━━━━━━━━━━━━] 0              │
+│ Down:      [━━━━━━━━━━━━━━━━━━━━] 0              │
+│ Sensitivity:[━━━━━━━━━━━━━━━━━━━━] 1.0           │
+│                                                  │
+│ [ Set Toggle Key ]   Key: F2                    │
+│                                                  │
+│ Activation Mode:     [Toggle Key ▼]             │
+│                                                  │
+│ Status: Inactive                                │
+│                                                  │
+│ [ Save Config ]  [ Load Config ]  [ New Config ]│
 └─────────────────────────────────────────────────┘
 ```
 
-> *Actual UI includes smooth slider handles, pulsing status light, and real‑time burst counter.*
+> *Actual window size: 430×440 pixels. All controls update live.*
 
 ---
 
 ## 🔧 How It Works
 
-The application installs low‑level Windows hooks (`WH_KEYBOARD_LL` and `WH_MOUSE_LL`) to monitor global input. When the activation condition is met (e.g., toggle key pressed or mouse button held), it calculates the required mouse displacement based on the configured recoil pattern, applies smoothing and randomisation, and sends relative mouse movements via `SendInput`.
+The application installs two low‑level Windows hooks:
+- **`WH_KEYBOARD_LL`** – detects the toggle key (in “Toggle Key” mode) or captures a new key when the user clicks “Set Toggle Key”.
+- **`WH_MOUSE_LL`** – monitors left and right button states for the hold modes.
 
-All calculations are performed in real time, using fractional accumulation to preserve sub‑pixel precision. No game memory is read or modified – the tool only simulates mouse input.
+When the activation condition is met:
+- A 10ms timer (`IDT_MOUSE_MOVE`) calculates the required mouse movement:
+  ```
+  deltaX = (right - left) / (sensitivity / 10)
+  deltaY = (down - up)   / (sensitivity / 10)
+  ```
+- Fractional parts are accumulated – each full integer pixel is sent via `SendInput` as a relative mouse move.
+- The process repeats until the activation condition ends.
+
+No game memory is read or modified – only synthetic mouse input is generated.
 
 ---
 
@@ -70,35 +72,37 @@ All calculations are performed in real time, using fractional accumulation to pr
 
 ### Prerequisites
 
-- **Windows 10 / 11** (64‑bit recommended)
-- Visual Studio 2022 (or any C++ compiler with Windows SDK)
-- [Dear ImGui](https://github.com/ocornut/imgui) (included as submodule or manually)
-- DirectX 11 runtime (included in Windows)
+- **Windows 7 / 8 / 10 / 11** (32‑bit or 64‑bit)
+- **Visual Studio** (any version with C++ and Windows SDK) or MinGW
+- No special libraries – uses only `windows.h`, `commctrl.h`, `commdlg.h`.
 
 ### Building
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/Universal-RCS.git
-   cd Universal-RCS
-   ```
-2. **Set up ImGui** – Copy the following ImGui files into the project directory:
-   - `imgui.h`, `imgui.cpp`
-   - `imgui_draw.cpp`, `imgui_widgets.cpp`, `imgui_tables.cpp`
-   - `backends/imgui_impl_win32.h`, `backends/imgui_impl_win32.cpp`
-   - `backends/imgui_impl_dx11.h`, `backends/imgui_impl_dx11.cpp`
-3. Open the solution in Visual Studio.
-4. Build as **x64** (the hooks require 64‑bit).
-5. Run the executable **as administrator** (required for low‑level hooks).
+1. Clone or download the source.
+2. Open the project in Visual Studio.
+3. Create a new **Windows Desktop Application** project (or a plain Win32 project).
+4. Add the provided `.cpp` file to the project.
+5. Set the subsystem to **Windows** (`/SUBSYSTEM:WINDOWS`).
+6. Build as **Release** for best performance.
+7. Run the executable **as administrator** (required for low‑level hooks).
 
-### Configuration
+### First Run
 
-- **Key binding**: Click `Set Key` and press any key – that becomes the new toggle key.
-- **Profiles**: Select a game from the dropdown to load recommended values.
-- **Saving**: Use the `Save Config` button – settings are stored in `recoil.cfg` in the same folder.
-- **Manual tuning**: Adjust the directional sliders while testing in‑game to match the exact recoil pattern.
+- The default toggle key is **F2**.  
+- To change it, click `Set Toggle Key` and press any key.  
+- Select the activation mode from the dropdown:  
+  *Toggle Key* – press your key to enable/disable.  
+  *Mouse 1* – hold left mouse button.  
+  *Mouse 1+2* – hold both left and right buttons.  
+- Adjust sliders while testing in‑game – the compensation is applied every 10ms.
 
-> ⚠️ **Note**: The low‑level hooks require administrative privileges. Right‑click the `.exe` → *Run as administrator*.
+### Saving & Loading
+
+- Use `Save Config` – choose a location and filename (e.g., `rainbow.ini`).  
+- `Load Config` – load a previously saved `.ini` file.  
+- `New Config` – resets all values to zero and sensitivity to 1.0.
+
+> ⚠️ **Note**: Low‑level hooks require **administrator privileges**. Right‑click the `.exe` → *Run as administrator*.
 
 ---
 
@@ -111,29 +115,28 @@ Using input‑simulation tools in online multiplayer games may violate the game�
 
 ## 🛠️ Technical Details
 
-- **Language**: C++20
-- **Graphics API**: DirectX 11
-- **UI Library**: Dear ImGui (custom styling, no additional dependencies)
+- **Language**: C++17 (Win32 API)
+- **UI**: Native Windows controls (trackbars, buttons, static text, combobox)
 - **Hooks**: `WH_KEYBOARD_LL`, `WH_MOUSE_LL`
-- **Fonts** (optional): `BAUHS93.TTF`, `impact.ttf`, `segoeui.ttf`, `calibri.ttf`, `consola.ttf` – falls back to default if missing.
-- **Persistence**: Plain text INI‑style config file.
+- **Configuration**: Windows INI file API (`WritePrivateProfileStringW`, `GetPrivateProfileIntW`)
+- **Timing**: 10ms timer (`WM_TIMER`) for smooth, low‑latency movement
+- **Precision**: Sub‑pixel accumulation – no rounding errors over long bursts
 
 ### Algorithm Pseudocode
 
-```cpp
-if (active && !burstLimitReached && delayElapsed) {
-    rawDX = (right - left) / sensitivity;
-    rawDY = (down - up) / sensitivity;
-    
-    if (randomize) applyRandomOffset();
-    if (adaptive) scaleOverTime();
-    
-    target = lerp(target, raw, 1 - smoothing);
-    accum += target;
-    
-    SendInput(floor(accum.x), floor(accum.y));
-    accum -= floor(accum);
-}
+```
+on timer (10ms):
+    if active:
+        dx = (right - left) / (sensitivity / 10)
+        dy = (down - up) / (sensitivity / 10)
+        accumX += dx
+        accumY += dy
+        moveX = floor(accumX)
+        moveY = floor(accumY)
+        if moveX != 0 or moveY != 0:
+            SendInput(moveX, moveY)
+            accumX -= moveX
+            accumY -= moveY
 ```
 
 ---
@@ -146,18 +149,16 @@ Distributed under the **MIT License**. See `LICENSE` for more information.
 
 ## 🙏 Acknowledgements
 
-- [Dear ImGui](https://github.com/ocornut/imgui) – immediate mode GUI
-- Microsoft – DirectX 11 and Windows Hook APIs
-- The FPS gaming community for recoil pattern insights
+- Microsoft Windows API documentation
+- The low‑level hooking community
 
 ---
 
-## 📫 Contact & Contributions
+## 📫 Contributions
 
-Pull requests and feature suggestions are welcome.  
-Please open an issue first to discuss major changes.
-Discord : snofla.cpp
+Pull requests and suggestions are welcome.  
+Please open an issue first for major changes.
 
 ---
 
-*Made with ❤️ for the love of precision aiming.*
+*Made for users who prefer classic, no‑frills utilities with absolute control.*
